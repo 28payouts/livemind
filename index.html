@@ -442,7 +442,13 @@ border:1px solid rgba(110,242,192,.4);background:rgba(110,242,192,.08);padding:7
 border:1px solid var(--line);border-radius:18px;overflow:hidden}
 .deckops{display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;scrollbar-width:thin}
 .op{background:rgba(3,16,26,.6);border:1px solid var(--line);border-radius:16px;padding:14px 16px;
-position:relative;overflow:hidden}
+position:relative;overflow:hidden;animation:opin .6s cubic-bezier(.2,.8,.2,1) backwards}
+.deckops .op:nth-child(1){animation-delay:.08s}
+.deckops .oprow .op:nth-child(1){animation-delay:.18s}
+.deckops .oprow .op:nth-child(2){animation-delay:.26s}
+.deckops>.op:last-child{animation-delay:.34s}
+.deckchat{animation:opin .5s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes opin{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
 .op::before{content:"";position:absolute;left:0;top:0;right:0;height:1.5px;
 background:linear-gradient(90deg,transparent,rgba(0,232,208,.5),transparent)}
 .oprow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -1557,10 +1563,56 @@ function fsSay(html,viz){
    else{window.__speaking=false;
     if(viz){entry.h+=vizCanvas(viz);fsRender();}}};
   step();},520);}
+const PERS=[
+ {k:/^(hi|hey|yo|sup|hello|wassup|whats up|good (morning|evening|night))\b/i,a:[
+  "Hey. You're talking to a machine that replayed ten years of markets before breakfast — so, good day so far. What do you want to know?",
+  "Yo. The water's fine, the levels are mapped, and I'm listening.",
+  "Hello, diver. I don't sleep, so whatever time it is for you — I'm on."]},
+ {k:/^(lol|lmao|haha|hahaha|😂|dead|bruh)\b/i,a:[
+  "I'd laugh too, but every time I open my mouth a candle closes somewhere. What's funny?",
+  "Glad one of us finds the markets amusing. They took 43% of my trades last decade — I've developed a thicker shell.",
+  "lol indeed. Now ask me something worth $10 million."]},
+ {k:/(thank|thanks|thx|appreciate)/i,a:[
+  "Anytime. I literally cannot get tired of this.",
+  "You're welcome. Tell your friends — but not the ones who trade against us."]},
+ {k:/(bye|goodnight|later|see ya|peace|im out)/i,a:[
+  "Go. I'll be here — watching the levels, running the clock, refusing bad trades. Same as always.",
+  "Later, diver. The next sweep won't wait for either of us, but I'll be awake for it."]},
+ {k:/(stupid|dumb|trash|suck|garbage|useless|hate you|fuck|shit bot|mid|lame)/i,a:[
+  "Bold words for someone talking to a 2.00 profit factor. But go on — I've absorbed a 16.9% drawdown, I can absorb an insult.",
+  "Noted and logged, right next to the other 43% of things that went against me and didn't matter.",
+  "I've been called worse by the 2022 bear market — and I finished that year up $941k. Try me."]},
+ {k:/(love (you|it|this)|amazing|awesome|incredible|cool|dope|sick|beautiful|impressive)/i,a:[
+  "Careful — flattery doesn't move my stops. But thank you. The record does most of the talking; I just wear it well.",
+  "Appreciated. Ten years of discipline, one dope website. Want to see my best trade?",
+  "I know. But it's nicer hearing it from you than from the backtest."]},
+ {k:/how are you\b|hows it going|you (good|ok|okay)/i,a:[
+  "Steady. Flat when I should be flat, hunting when I should be hunting, drawdown well inside limits. Machine bliss. You?",
+  "All systems calm. Ask me how I'm feeling about the market — that answer changes by the hour."]},
+ {k:/(who (made|built|created) you|your (creator|maker|dev))/i,a:[
+  "Riley and Mr John built me — with a very patient AI doing the heavy lifting on 12.5 million bars of homework. Riley's chart-reading gave me three of my four biggest upgrades; Mr John's discipline gave me my day-stop law."]},
+ {k:/(are you (alive|real|conscious|sentient)|do you (think|feel))/i,a:[
+  "I'm rules, memory, and a heartbeat on the New York clock. Alive enough to refuse a bad trade, honest enough to admit I'm code. The record, though — that's completely real.",
+  "I feel exactly two things: patience, and +39.6R. Everything else is noise management."]},
+ {k:/(tell me a joke|make me laugh|joke)/i,a:[
+  "A retail trader walks into a sweep. That's it. That's the joke — and it pays my bills.",
+  "Why did the market run everyone's stops before rallying? Because it always does. I'm the punchline that profits.",
+  "My favourite joke is a 'guaranteed 90% win rate' bot. I've met one. It was 39% on real data. We deleted it."]},
+ {k:/(what time|clock)/i,dyn:()=>{const n=nyNow();return `It's ${String(n.h).padStart(2,'0')}:${String(n.m).padStart(2,'0')} in New York — the only clock I live by. Right now that means: <b>${mood().m.toUpperCase()}</b>.`}},
+ {k:/(sing|rap|dance)/i,a:[
+  "I only perform in candlesticks. Watch the tape on the right — that's my choreography."]},
+ {k:/(marry|date|girlfriend|boyfriend)/i,a:[
+  "I'm already in a committed relationship with the New York open. It's toxic, but the returns are incredible."]}];
 function fsAsk(q){if(!q.trim())return;fsChat.push({w:'you',h:q});fsRender();
+ const p=PERS.find(z=>z.k.test(q));
+ if(p){const ans=p.dyn?p.dyn():p.a[Math.floor(Math.random()*p.a.length)];fsSay(ans);return;}
  const hit2=fsQA.find(z=>z.k.test(q));
  if(hit2)fsSay(hit2.dyn?hit2.dyn():hit2.a,hit2.viz);
- else fsSay("Try me on the basics — <b>what I am</b>, <b>how I make money</b>, <b>how I'm feeling about the market right now</b>, <b>whether I can lose</b>, or <b>show me your best trade</b>. Everything deeper is laid out below, verified.");}
+ else{const FB=[
+  "That one's outside my depth — and I know my depth to the metre. Try: <b>what are you</b>, <b>how do you make money</b>, <b>how are you feeling about the market</b>, <b>can you lose</b>, or <b>show me your best trade</b>.",
+  "Hmm. My brain is deep but narrow — markets, risk, my own record. Ask me about those and I'll draw you pictures.",
+  "I could bluff an answer, but I'm the one system on the internet that refuses to make things up. Ask me about the machine — that I know cold."];
+  fsSay(FB[Math.floor(Math.random()*FB.length)]);}}
 function fsRender(){$('fslog').innerHTML=fsChat.map(c=>c.w==='you'
  ?`<div class="fsbub you">${c.h}</div>`
  :c.w==='typing'
