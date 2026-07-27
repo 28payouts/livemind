@@ -471,6 +471,7 @@ width:54px;color:#012;font-size:17px;cursor:pointer}
 <div id="fsmodal">
   <button id="fsclose">✕</button>
   <div class="fshead"><canvas id="fsorb"></canvas>
+    <canvas id="fswave" style="width:220px;height:26px;display:block;margin:6px auto 0"></canvas>
     <div class="fsname" id="fsname"></div><div class="fssub" id="fssub"></div>
     <div class="fsstats" id="fsstats"></div></div>
   <div class="fsbody"><div class="fslog" id="fslog"></div></div>
@@ -1361,7 +1362,17 @@ function fsOrbDraw(col1,col2){const c=$('fsorb');const x=c.getContext('2d');
    x.strokeStyle=k2%2?col1:col2;x.globalAlpha=.55;x.lineWidth=1.8;
    x.beginPath();x.arc(120+Math.cos(aa)*16,120+Math.sin(aa)*16,34+Math.sin(tt*.03+k2)*8,aa,aa+2.2);x.stroke();}
   x.globalAlpha=1;x.fillStyle='#fff';
-  x.beginPath();x.arc(120,120,7+Math.sin(tt*.06)*2,0,7);x.fill();
+  const spk=window.__speaking?1:0;
+  x.beginPath();x.arc(120,120,7+Math.sin(tt*(.06+spk*.22))*(2+spk*4),0,7);x.fill();
+  if(spk){x.strokeStyle=col1;x.globalAlpha=.5;x.lineWidth=2;
+   x.beginPath();x.arc(120,120,60+Math.sin(tt*.3)*8,0,7);x.stroke();x.globalAlpha=1;}
+  /* waveform — speaks when speaking, breathes when idle */
+  const wv=document.getElementById('fswave');
+  if(wv){const wx=wv.getContext('2d');const WW=wv.width=440,WH=wv.height=52;
+   wx.clearRect(0,0,WW,WH);wx.strokeStyle=col1;wx.lineWidth=2.4;wx.beginPath();
+   for(let px=0;px<=WW;px+=4){const f2=spk?(Math.sin(px*.07+tt*.5)*Math.sin(px*.023+tt*.31)*16*Math.random()*.7+Math.sin(px*.05+tt*.4)*8):Math.sin(px*.03+tt*.06)*3;
+    const py=WH/2+f2;px===0?wx.moveTo(px,py):wx.lineTo(px,py);}
+   wx.stroke();}
   fsOrbAnim=requestAnimationFrame(loop);};loop();}
 /* ── inline chat visuals ── */
 let vizN=0;
@@ -1446,10 +1457,21 @@ function drawViz(id,kind){const c=document.getElementById(id);if(!c)return;
    x.fillStyle=z[2];x.fillRect(290,y,Math.max(30,wpx),28);
    x.fillStyle='#eafcff';x.textAlign='right';x.fillText(fmtM(z[1]),W-24,y+19);x.textAlign='left';});
   x.fillStyle='#5b8398';x.fillText('same $100k · same ten years · log scale',20,H2-12);}}
+window.__speaking=false;
 function fsSay(html,viz){
  fsChat.push({w:'typing'});fsRender();
  setTimeout(()=>{fsChat.pop();
-  fsChat.push({w:'bot',h:html+(viz?vizCanvas(viz):'')});fsRender();},650);}
+  const entry={w:'bot',h:''};fsChat.push(entry);
+  const plain=html;const words=plain.split(/(\s+|<[^>]+>)/).filter(x=>x!=='');
+  let i=0;window.__speaking=true;
+  const step=()=>{if(!document.getElementById('fslog')){window.__speaking=false;return}
+   let chunk='';let n2=0;
+   while(i<words.length&&n2<2){chunk+=words[i];if(!/^\s+$/.test(words[i])&&!words[i].startsWith('<'))n2++;i++;}
+   entry.h+=chunk;fsRender();
+   if(i<words.length)setTimeout(step,34);
+   else{window.__speaking=false;
+    if(viz){entry.h+=vizCanvas(viz);fsRender();}}};
+  step();},520);}
 function fsAsk(q){if(!q.trim())return;fsChat.push({w:'you',h:q});fsRender();
  const hit2=fsQA.find(z=>z.k.test(q));
  if(hit2)fsSay(hit2.dyn?hit2.dyn():hit2.a,hit2.viz);
@@ -1726,6 +1748,20 @@ function drawReplay(){const c=$('replay'),x=c.getContext('2d');const t=TRADES[tI
   x.strokeStyle=col;x.lineWidth=2;x.beginPath();x.moveTo(xx,ys(b2.h));x.lineTo(xx,ys(b2.l));x.stroke();
   x.fillStyle=col;const y1=ys(Math.max(b2.o,b2.c)),y2=ys(Math.min(b2.o,b2.c));
   x.fillRect(xx-bw/2,y1,bw,Math.max(3,y2-y1));x.globalAlpha=1;});
+ /* protective trail overlay on deep runners — candidate rule, labeled honestly */
+ if(st.be&&st.R>2&&!st.done){
+  const lb=Math.max(t.entry_bar,end-14);
+  let trail=lng?-Infinity:Infinity;
+  x.strokeStyle='#c58cff';x.lineWidth=2;x.setLineDash([5,6]);x.beginPath();
+  let started=false;
+  for(let i=lb;i<=end;i++){const win2=all.slice(Math.max(t.entry_bar,i-10),i+1);
+   const lvl2=lng?Math.min(...win2.map(b2=>b2.l)):Math.max(...win2.map(b2=>b2.h));
+   trail=lng?Math.max(trail,lvl2):Math.min(trail,lvl2);
+   const yy=ys(trail);if(yy<pt||yy>Hh-pb)continue;
+   if(!started){x.moveTo(xs(i),yy);started=true}else x.lineTo(xs(i),yy);}
+  x.stroke();x.setLineDash([]);
+  if(started){x.fillStyle='#c58cff';x.font='700 15px ui-monospace,Menlo,monospace';x.textAlign='left';
+   x.fillText('PROTECTIVE TRAIL · in live-sim testing',pl+10,Math.min(Hh-pb-8,ys(trail)+22));}}
  /* markers */
  const mark=(bar,price,col,txt,above)=>{if(bar<start||bar>end)return;const xx=xs(bar),yy=ys(price);
   x.fillStyle=col;x.beginPath();x.arc(xx,yy,9,0,7);x.fill();
@@ -2262,12 +2298,10 @@ $('phases').innerHTML=[
     nd.textContent=p<1?Math.round(target*e3).toLocaleString():fin;
     if(p<1)requestAnimationFrame(tk);};requestAnimationFrame(tk);});});},{threshold:.3}).observe($('workctr'));
  /* mistakes accordion */
- const MK=[['−$3.9M','The optimistic exit shortcut','An earlier build estimated partial exits with a formula instead of replaying them — it missed runners stopped at break-even intraday and inflated the headline from $1.7M to $5.6M. We rewrote the replay candle-by-candle and published the smaller number. Every figure since is a true replay.'],
-  ['−$224,712','Micro-contract fee drag','Routing size through micro contracts looked convenient and quietly ate a quarter of a million in commissions. The bot now routes full contracts once the account supports it.'],
-  ['−20% winners','Missing slippage on one leg','An early replay forgot slippage on one side, overstating winners by about a fifth. Corrected — then double-slippage stress-tested on every leg to make sure it can never matter again.'],
-  ['PF 4.3 → real','A test script flattering losers','A tiered-exit tester credited full losses as partial ones, producing an absurd profit factor. Caught, rewritten, re-run.'],
-  ['75% → 39%','A fake "75% win rate" bot','An older build’s headline came from synthetic data and crashed on real bars. Real number: 39% win rate, barely break-even. Deleted from the lineup entirely.'],
-  ['−$77,283','Six rows we couldn’t prove','In the final audit, six trades couldn’t be proven unique rather than duplicated. We deleted them and took the loss to the headline instead of arguing for them.']];
+ const MK=[['−$3.9M','The optimistic exit shortcut','An earlier build estimated partial exits with a formula instead of replaying them — it inflated the headline from $1.7M to $5.6M. We rewrote the replay candle-by-candle and published the smaller number. Every figure since is a true replay.'],
+  ['75% → 39%','A fake “75% win rate” bot','An older build’s headline came from synthetic data and crashed on real bars. Real number: 39% win rate, barely break-even. Deleted from the lineup entirely.'],
+  ['−20% winners','Missing slippage on one leg','An early replay forgot slippage on one side, overstating winners by about a fifth. Corrected — then double-slippage stress-tested on every leg so it can never matter again.'],
+  ['−$77,283','Six rows we couldn’t prove','In the final audit, six trades couldn’t be proven unique. We deleted them and took the loss to the headline instead of arguing for them.']];
  $('mistakes').innerHTML=MK.map(m2=>`<div class="mk"><div class="head3">
   <div class="cost">${m2[0]}</div><div class="ti3">${m2[1]}</div><div class="car">▶</div></div>
   <div class="bd3">${m2[2]}</div></div>`).join('');
