@@ -1619,7 +1619,7 @@ function fsRender(){$('fslog').innerHTML=fsChat.map(c=>c.w==='you'
  ?`<div class="fsbub bot" style="padding:15px 22px"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span></div>`
  :`<div class="fsbub bot"><div class="who2">${fsWho==='mind'?'◈ THE LIVE MIND':fsWho==='riley'?'◤ RILEY’S LIVE MIND':fsWho==='john'?'◥ MR JOHN’S LIVE MIND':'NODE'}</div>${c.h}</div>`).join('');
  const bb=document.querySelector('.fsbody');bb.scrollTop=bb.scrollHeight;}
-function openFS(k){fsWho=k;fsChat=[];
+function openFS(k){fsWho=k;fsChat=[];setTimeout(()=>opsStart(k),80);
  const M=$('fsmodal');M.classList.add('show');document.body.style.overflow='hidden';
  const set=(nm,sub,stats,chips,col1,col2,greet,qa)=>{
   $('fsname').innerHTML=nm;$('fssub').textContent=sub;
@@ -1761,7 +1761,7 @@ function opsLoop(){if(!$('fsmodal').classList.contains('show')){opsStop();return
   x3.beginPath();x3.arc(104,104,84,-Math.PI/2,-Math.PI/2+pct*Math.PI*2);x3.stroke();
   $('opGaugeN').textContent=DEMO.capture.toFixed(1)+'%';}
  if(performance.now()-DEMO.lastBar>DEMO.barMs)DEMO.lastBar=performance.now();
- opsRAF=requestAnimationFrame(opsLoop); opsStart(k);}
+ opsRAF=requestAnimationFrame(opsLoop);}
 $('fsclose').onclick=()=>{$('fsmodal').classList.remove('show');document.body.style.overflow='';cancelAnimationFrame(fsOrbAnim);opsStop();};
 $('fsgo').onclick=()=>{const v=$('fsin').value;$('fsin').value='';fsAsk(v);};
 $('fsin').addEventListener('keydown',e=>{if(e.key==='Enter'){const v=$('fsin').value;$('fsin').value='';fsAsk(v);}});
